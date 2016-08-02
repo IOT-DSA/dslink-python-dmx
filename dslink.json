@@ -1,0 +1,20 @@
+{
+  "name": "dslink-python-dmx",
+  "version": "0.1.0",
+  "description": "DSLink for DMX-512",
+  "main": "src/DmxDSLink.py",
+  "engines": {
+    "python": ">=2.7.0"
+  },
+  "getDependencies": [
+    "python setup.py install"
+  ],
+  "configs": {
+    "broker": {
+      "type": "url"
+    },
+    "token": {
+      "type": "string"
+    }
+  }
+}
