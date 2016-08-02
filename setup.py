@@ -11,6 +11,7 @@ setup(
     install_requires=[
         "txaio",
         "dslink == 0.6.16",
-        "pysimpledmx"
+        "pysimpledmx",
+        "pyserial"
     ]
 )
