@@ -1,6 +1,6 @@
 {
   "name": "dslink-python-dmx",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DSLink for DMX-512",
   "main": "src/DmxDSLink.py",
   "engines": {

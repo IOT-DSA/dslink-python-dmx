@@ -1,9 +1,7 @@
 import dslink
 from dslink.Value import Value
 from DmxUniverse import Universe
-import sys
-import glob
-import serial
+from Utils import *
 
 
 class DmxDSLink(dslink.DSLink):
@@ -15,10 +13,11 @@ class DmxDSLink(dslink.DSLink):
 
         # self.scan_for_devices()
 
-        self.restore_last()
-
         self.responder.profile_manager.create_profile("add_universe")
         self.responder.profile_manager.register_callback("add_universe", self.add_universe)
+
+        self.responder.profile_manager.create_profile("scan_for_ports")
+        self.responder.profile_manager.register_callback("scan_for_ports", self.scan_for_ports)
 
         self.responder.profile_manager.create_profile("edit_universe")
         self.responder.profile_manager.register_callback("edit_universe", self.edit_universe)
@@ -44,42 +43,20 @@ class DmxDSLink(dslink.DSLink):
         self.responder.profile_manager.create_profile("control_device_channels")
         self.responder.profile_manager.register_callback("control_device_channels", self.control_device_channels)
 
+        self.restore_last()
+
         self.make_add_universe_action(self.responder.get_super_root())
+        self.make_port_scan_action(self.responder.get_super_root())
 
     def restore_last(self):
         root = self.responder.get_super_root()
         for child_name in root.children.copy():
-            if child_name != "defs":
+            child = root.get("/%s" % child_name)
+            if child is not None and node_has_attribute(child, "@SerialPort"):
+                univ = Universe(self, child)
+                univ.restore_devices()
+            elif child_name != "defs":
                 root.remove_child(child_name)
-
-    @staticmethod
-    def serial_ports():
-        """ Lists serial port names
-
-            :raises EnvironmentError:
-                On unsupported or unknown platforms
-            :returns:
-                A list of the serial ports available on the system
-        """
-        if sys.platform.startswith('win'):
-            ports = ['COM%s' % (i + 1) for i in range(256)]
-        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
-            # this excludes your current terminal "/dev/tty"
-            ports = glob.glob('/dev/tty[A-Za-z]*')
-        elif sys.platform.startswith('darwin'):
-            ports = glob.glob('/dev/tty.*')
-        else:
-            raise EnvironmentError('Unsupported platform')
-
-        result = []
-        for port in ports:
-            try:
-                s = serial.Serial(port)
-                s.close()
-                result.append(port)
-            except (OSError, serial.SerialException):
-                pass
-        return result
 
     def get_default_nodes(self, super_root):
 
@@ -87,25 +64,49 @@ class DmxDSLink(dslink.DSLink):
 
         return super_root
 
-    def make_add_universe_action(self, super_root):
-
-        serports = self.serial_ports()
-
-        add_univ = super_root.create_child("add_universe")
-        add_univ.set_parameters([
+    @staticmethod
+    def get_add_action_params(port_list):
+        params = [
             {
                 "name": "Name",
                 "type": "string"
-            },
-            {
-                "name": "Serial Port",
-                "type": Value.build_enum(serports)
             }
-        ])
+        ]
+        if len(port_list) > 0:
+            params.append({
+                "name": "Serial Port",
+                "type": Value.build_enum(port_list)
+            })
+            params.append({
+                "name": "Serial Port (manual entry)",
+                "type": "string"
+            })
+        else:
+            params.append({
+                "name": "Serial Port",
+                "type": "string"
+            })
 
+        return params
+
+    def make_add_universe_action(self, super_root):
+        serports = serial_ports()
+        params = self.get_add_action_params(serports)
+
+        add_univ = super_root.create_child("add_universe")
+        add_univ.set_parameters(params)
         add_univ.set_profile("add_universe")
         add_univ.set_invokable("config")
         add_univ.set_display_name("Add Universe")
+        add_univ.set_transient(True)
+
+    @staticmethod
+    def make_port_scan_action(super_root):
+        scan_ports = super_root.create_child("scan_for_ports")
+        scan_ports.set_profile("scan_for_ports")
+        scan_ports.set_invokable("config")
+        scan_ports.set_display_name("Scan for serial ports")
+        scan_ports.set_transient(True)
 
     # def got_devices(self, state, device_list):
     #     for device in device_list:
@@ -122,7 +123,11 @@ class DmxDSLink(dslink.DSLink):
 
     def add_universe(self, parameters):
         name = parameters[1]["Name"]
-        ser_port = int(parameters[1]["Serial Port"])
+        ser_port = parameters[1]["Serial Port"]
+        if "Serial Port (manual entry)" in parameters[1]:
+            ser_port_man = parameters[1]["Serial Port (manual entry)"]
+            if ser_port_man is not None and len(ser_port_man) > 0:
+                ser_port = ser_port_man
 
         if self.responder.get_super_root().get("/%s" % name) is None:
             univ_node = self.responder.get_super_root().create_child(name)
@@ -133,6 +138,15 @@ class DmxDSLink(dslink.DSLink):
             [
             ]
         ]
+
+    def scan_for_ports(self, parameters):
+        serports = serial_ports()
+
+        add_univ = self.responder.get_super_root().get("/add_universe")
+        if add_univ is not None:
+            add_univ.set_parameters(self.get_add_action_params(serports))
+        for universe in self.multiverse.values():
+            universe.update_edit_action(serports)
 
     # Universe Level
 
@@ -206,7 +220,7 @@ class DmxDSLink(dslink.DSLink):
         univ_node = dev_node.parent
         universe = self.multiverse[univ_node.name]
         device = universe.devices[dev_node.name]
-        device.contol_channels(parameters[1])
+        device.control_channels(parameters[1])
         return [
             [
             ]
