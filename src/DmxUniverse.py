@@ -44,6 +44,10 @@ class Universe:
 
         if self.connection is not None:
             self.statnode.set_value("Connected")
+
+            for device in self.devices.values():
+                device.send_local_values()
+
         else:
             self.statnode.set_value("Failed to connect")
 

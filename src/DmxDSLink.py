@@ -43,6 +43,21 @@ class DmxDSLink(dslink.DSLink):
         self.responder.profile_manager.create_profile("control_device_channels")
         self.responder.profile_manager.register_callback("control_device_channels", self.control_device_channels)
 
+        self.responder.profile_manager.create_profile("add_linear_actuator")
+        self.responder.profile_manager.register_callback("add_linear_actuator", self.add_linear_actuator)
+
+        self.responder.profile_manager.create_profile("add_rgb_actuator")
+        self.responder.profile_manager.register_callback("add_rgb_actuator", self.add_rgb_actuator)
+
+        self.responder.profile_manager.create_profile("add_multistate_actuator")
+        self.responder.profile_manager.register_callback("add_multistate_actuator", self.add_multistate_actuator)
+
+        self.responder.profile_manager.create_profile("edit_actuator")
+        self.responder.profile_manager.register_callback("edit_actuator", self.edit_actuator)
+
+        self.responder.profile_manager.create_profile("remove_actuator")
+        self.responder.profile_manager.register_callback("remove_actuator", self.remove_actuator)
+
         self.restore_last()
 
         self.make_add_universe_action(self.responder.get_super_root())
@@ -221,6 +236,67 @@ class DmxDSLink(dslink.DSLink):
         universe = self.multiverse[univ_node.name]
         device = universe.devices[dev_node.name]
         device.control_channels(parameters[1])
+        return [
+            [
+            ]
+        ]
+
+    def add_linear_actuator(self, parameters):
+        dev_node = parameters[0].parent
+        univ_node = dev_node.parent
+        universe = self.multiverse[univ_node.name]
+        device = universe.devices[dev_node.name]
+        device.add_linear_actuator(parameters[1])
+        return [
+            [
+            ]
+        ]
+
+    def add_rgb_actuator(self, parameters):
+        dev_node = parameters[0].parent
+        univ_node = dev_node.parent
+        universe = self.multiverse[univ_node.name]
+        device = universe.devices[dev_node.name]
+        device.add_rgb_actuator(parameters[1])
+        return [
+            [
+            ]
+        ]
+
+    def add_multistate_actuator(self, parameters):
+        dev_node = parameters[0].parent
+        univ_node = dev_node.parent
+        universe = self.multiverse[univ_node.name]
+        device = universe.devices[dev_node.name]
+        device.add_multistate_actuator(parameters[1])
+        return [
+            [
+            ]
+        ]
+
+    # Actuator Level
+
+    def edit_actuator(self, parameters):
+        actu_node = parameters[0].parent
+        dev_node = actu_node.parent.parent
+        univ_node = dev_node.parent
+        universe = self.multiverse[univ_node.name]
+        device = universe.devices[dev_node.name]
+        actuator = device.actuators[actu_node.name]
+        actuator.edit(parameters[1])
+        return [
+            [
+            ]
+        ]
+
+    def remove_actuator(self, parameters):
+        actu_node = parameters[0].parent
+        dev_node = actu_node.parent.parent
+        univ_node = dev_node.parent
+        universe = self.multiverse[univ_node.name]
+        device = universe.devices[dev_node.name]
+        actuator = device.actuators[actu_node.name]
+        actuator.remove()
         return [
             [
             ]

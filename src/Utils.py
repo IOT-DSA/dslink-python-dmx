@@ -2,6 +2,7 @@ import sys
 import glob
 import serial
 
+
 def node_has_attribute(node, attribute):
     try:
         node.get_attribute(attribute)
