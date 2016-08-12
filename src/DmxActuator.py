@@ -138,7 +138,7 @@ class RgbActuator(Actuator):
         r = self.device.channel_values[self.red]
         g = self.device.channel_values[self.green]
         b = self.device.channel_values[self.blue]
-        self.node.set_value("#%x%x%x" % (r, g, b))
+        self.node.set_value("#%02X%02X%02X" % (r, g, b))
 
 
 class MultistateActuator(Actuator):
